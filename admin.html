@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin - Registrations</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+
+<h2>Registrations (Admin)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Full Name</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody id="data"></tbody>
+</table>
+
+<p id="msg"></p>
+
+<script>
+  const supabaseClient = window.supabase.createClient(
+    "https://fjsduvfhubmzbizjinrx.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqc2R1dmZodWJtemJpemppbnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NzQ1MzksImV4cCI6MjA4NDA1MDUzOX0.4D2TPcA8ZG6LF-iBAoABejRI6efC1W2FCPgKNoOiEj0"
+  );
+
+  async function loadData() {
+    const { data, error } = await supabaseClient
+      .from("registrations")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      document.getElementById("msg").innerText = error.message;
+      return;
+    }
+
+    document.getElementById("data").innerHTML = data.map(r => `
+      <tr>
+        <td>${r.full_name}</td>
+        <td>${r.email}</td>
+        <td>${r.phone || ""}</td>
+        <td>${new Date(r.created_at).toLocaleString()}</td>
+      </tr>
+    `).join("");
+  }
+
+  loadData();
+</script>
+
+</body>
+</html>
