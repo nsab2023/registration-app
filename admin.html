@@ -1,38 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin - Registrations</title>
+  <title>Admin Panel</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { font-family: Arial; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; }
+    input, button { padding: 8px; margin: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; }
     th { background: #f2f2f2; }
   </style>
 </head>
 <body>
 
-<h2>Registrations (Admin)</h2>
+<h2>Admin Login</h2>
 
-<table>
-  <thead>
-    <tr>
-      <th>Full Name</th>
-      <th>Email</th>
-      <th>Phone</th>
-      <th>Date</th>
-    </tr>
-  </thead>
-  <tbody id="data"></tbody>
-</table>
+<div id="login">
+  <input type="email" id="loginEmail" placeholder="Email"><br>
+  <input type="password" id="loginPassword" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
+  <p id="loginMsg"></p>
+</div>
 
-<p id="msg"></p>
+<div id="dashboard" style="display:none;">
+  <h2>Registrations</h2>
+  <button onclick="exportCSV()">Export to Excel</button>
+  <table>
+    <thead>
+      <tr>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="data"></tbody>
+  </table>
+</div>
 
 <script>
   const supabaseClient = window.supabase.createClient(
     "https://fjsduvfhubmzbizjinrx.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqc2R1dmZodWJtemJpemppbnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NzQ1MzksImV4cCI6MjA4NDA1MDUzOX0.4D2TPcA8ZG6LF-iBAoABejRI6efC1W2FCPgKNoOiEj0"
   );
+
+  async function login() {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email: loginEmail.value,
+      password: loginPassword.value
+    });
+
+    if (error) {
+      loginMsg.innerText = error.message;
+    } else {
+      login.style.display = "none";
+      dashboard.style.display = "block";
+      loadData();
+    }
+  }
 
   async function loadData() {
     const { data, error } = await supabaseClient
@@ -41,9 +66,11 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      document.getElementById("msg").innerText = error.message;
+      alert(error.message);
       return;
     }
+
+    window.records = data;
 
     document.getElementById("data").innerHTML = data.map(r => `
       <tr>
@@ -55,8 +82,22 @@
     `).join("");
   }
 
-  loadData();
+  function exportCSV() {
+    let csv = "Full Name,Email,Phone,Date\n";
+    window.records.forEach(r => {
+      csv += `"${r.full_name}","${r.email}","${r.phone || ""}","${r.created_at}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "registrations.csv";
+    a.click();
+  }
 </script>
 
 </body>
 </html>
+
