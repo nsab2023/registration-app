@@ -1,30 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Admin Panel</title>
+
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    body { font-family: Arial; padding: 20px; }
-    input, button { padding: 8px; margin: 5px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    th { background: #f2f2f2; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    input, button {
+      padding: 8px;
+      margin: 6px 0;
+      width: 100%;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background: #f2f2f2;
+    }
+
+    #dashboard {
+      display: none;
+    }
+
+    #loginMsg {
+      color: red;
+    }
   </style>
 </head>
 <body>
 
 <h2>Admin Login</h2>
 
+<!-- LOGIN -->
 <div id="login">
-  <input type="email" id="loginEmail" placeholder="Email"><br>
-  <input type="password" id="loginPassword" placeholder="Password"><br>
+  <input type="email" id="loginEmail" placeholder="Email" />
+  <input type="password" id="loginPassword" placeholder="Password" />
   <button onclick="login()">Login</button>
   <p id="loginMsg"></p>
 </div>
 
-<div id="dashboard" style="display:none;">
+<!-- DASHBOARD -->
+<div id="dashboard">
   <h2>Registrations</h2>
+
   <button onclick="exportCSV()">Export to Excel</button>
+  <button onclick="logout()">Logout</button>
+
   <table>
     <thead>
       <tr>
@@ -39,6 +83,9 @@
 </div>
 
 <script>
+  /* ===============================
+     SUPABASE CONFIG
+     =============================== */
   const supabaseClient = window.supabase.createClient(
     "https://fjsduvfhubmzbizjinrx.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqc2R1dmZodWJtemJpemppbnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NzQ1MzksImV4cCI6MjA4NDA1MDUzOX0.4D2TPcA8ZG6LF-iBAoABejRI6efC1W2FCPgKNoOiEj0"
@@ -48,37 +95,53 @@
   const dashboardDiv = document.getElementById("dashboard");
   const loginMsg = document.getElementById("loginMsg");
 
-  // Check session on page load
+  /* ===============================
+     CHECK SESSION ON PAGE LOAD
+     =============================== */
   async function checkSession() {
     const { data } = await supabaseClient.auth.getSession();
-    if (data.session) {
-      loginDiv.style.display = "none";
-      dashboardDiv.style.display = "block";
-      loadData();
-    }
-  }
 
-  checkSession();
-
-  async function login() {
-    loginMsg.innerText = "Logging in...";
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: document.getElementById("loginEmail").value,
-      password: document.getElementById("loginPassword").value
-    });
-
-    if (error) {
-      loginMsg.innerText = "Login failed: " + error.message;
+    if (!data.session) {
+      loginDiv.style.display = "block";
+      dashboardDiv.style.display = "none";
       return;
     }
 
-    loginMsg.innerText = "Login successful!";
     loginDiv.style.display = "none";
     dashboardDiv.style.display = "block";
     loadData();
   }
 
+  checkSession();
+
+  /* ===============================
+     LOGIN
+     =============================== */
+  async function login() {
+    loginMsg.innerText = "Logging in...";
+
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      loginMsg.innerText = error.message;
+      return;
+    }
+
+    loginMsg.innerText = "";
+    loginDiv.style.display = "none";
+    dashboardDiv.style.display = "block";
+    loadData();
+  }
+
+  /* ===============================
+     LOAD DATA (RLS PROTECTED)
+     =============================== */
   async function loadData() {
     const { data, error } = await supabaseClient
       .from("registrations")
@@ -86,7 +149,7 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert("Data error: " + error.message);
+      alert("Access denied or error: " + error.message);
       return;
     }
 
@@ -102,8 +165,12 @@
     `).join("");
   }
 
+  /* ===============================
+     EXPORT TO CSV
+     =============================== */
   function exportCSV() {
     let csv = "Full Name,Email,Phone,Date\n";
+
     window.records.forEach(r => {
       csv += `"${r.full_name}","${r.email}","${r.phone || ""}","${r.created_at}"\n`;
     });
@@ -115,6 +182,14 @@
     a.href = url;
     a.download = "registrations.csv";
     a.click();
+  }
+
+  /* ===============================
+     LOGOUT
+     =============================== */
+  async function logout() {
+    await supabaseClient.auth.signOut();
+    location.reload();
   }
 </script>
 
