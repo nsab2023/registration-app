@@ -44,19 +44,39 @@
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqc2R1dmZodWJtemJpemppbnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0NzQ1MzksImV4cCI6MjA4NDA1MDUzOX0.4D2TPcA8ZG6LF-iBAoABejRI6efC1W2FCPgKNoOiEj0"
   );
 
+  const loginDiv = document.getElementById("login");
+  const dashboardDiv = document.getElementById("dashboard");
+  const loginMsg = document.getElementById("loginMsg");
+
+  // Check session on page load
+  async function checkSession() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data.session) {
+      loginDiv.style.display = "none";
+      dashboardDiv.style.display = "block";
+      loadData();
+    }
+  }
+
+  checkSession();
+
   async function login() {
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email: loginEmail.value,
-      password: loginPassword.value
+    loginMsg.innerText = "Logging in...";
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: document.getElementById("loginEmail").value,
+      password: document.getElementById("loginPassword").value
     });
 
     if (error) {
-      loginMsg.innerText = error.message;
-    } else {
-      login.style.display = "none";
-      dashboard.style.display = "block";
-      loadData();
+      loginMsg.innerText = "Login failed: " + error.message;
+      return;
     }
+
+    loginMsg.innerText = "Login successful!";
+    loginDiv.style.display = "none";
+    dashboardDiv.style.display = "block";
+    loadData();
   }
 
   async function loadData() {
@@ -66,7 +86,7 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert(error.message);
+      alert("Data error: " + error.message);
       return;
     }
 
